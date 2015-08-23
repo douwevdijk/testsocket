@@ -26,6 +26,7 @@ module.exports = function() {
                 //
             }
             connection = conn;
+            console.log(conn);
             deferred.resolve();
         });
 
