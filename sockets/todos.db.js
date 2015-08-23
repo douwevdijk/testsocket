@@ -6,8 +6,8 @@ var q = require('q');
 var connection = null;
 
 var dbConfig = {
-    host: process.env.RDB_HOST || '127.0.0.2',
-    port: parseInt(process.env.RDB_PORT) || 28015,
+    host: 'localhost',
+    port: 28015,
     db  : 'voting',
     tables: {
         'questions': 'id',
@@ -21,12 +21,11 @@ module.exports = function() {
     this.connect = function () {
         var deferred = q.defer();
 
-        r.connect( { host: dbConfig.host, port: dbConfig.port, db: 'voting' }, function(err, conn) {
+        r.connect( { host: dbConfig.host, port: dbConfig.port}, function(err, conn) {
             if (err) {
                 //
             }
             connection = conn;
-            console.log(conn);
             deferred.resolve();
         });
 
@@ -250,6 +249,7 @@ module.exports = function() {
 
         var qId = payload.qId;
         var pId = payload.player;
+        var pName = payload.playername;
 
         r.table('results').get(qId).run(connection, function (err, data) {
             var idx = checkPlayerexists(pId, data.results);
@@ -259,6 +259,7 @@ module.exports = function() {
                     .update({
                         'results': r.row('results').append({
                             pId: pId,
+                            pName: pName,
                             answer: payload.answer,
                             correct: payload.correct,
                             cnt: payload.int
@@ -323,19 +324,24 @@ module.exports = function() {
             .map(function (m) {
                 return r.branch(m('correct'), m.merge({pts: 1}), m.merge({pts: 0}))
             })
-            .group('pId').map(function (gr) {
+            .group('pId', 'pName').map(function (gr) {
                 return {pts: gr('pts'), cnt: gr('cnt')}
             })
             .reduce(function (left, right) {
                 return {pts: left('pts').add(right('pts')), cnt: left('cnt').add(right('cnt'))}
             })
-            .ungroup().orderBy(r.desc(r.row('reduction')('pts')))
             .run(connection, function (err, data) {
                 if (err) {
                     callback(null);
                 } else {
-                    r.table('score').update({score: data}).run(connection, function () {
-                        callback(data);
+
+                    var pairs = _und.chain(data).map(function(v,k) { return {id: v.group, total: v.reduction.pts,  duration: v.reduction.cnt} })
+                    var s = firstBy('total', -1)
+                        .thenBy('duration');
+                    pairs.sort(s);
+
+                    r.table('score').update({score: pairs._wrapped}).run(connection, function () {
+                        callback(pairs._wrapped);
                     })
                 }
             });
@@ -349,3 +355,6 @@ module.exports = function() {
 function checkPlayerexists(id, arr) {
     return _und.indexOf(_und.pluck(arr, 'pId'), id);
 }
+
+var firstBy = function(){function n(n,t){if("function"!=typeof n){var r=n;n=function(n,t){return n[r]<t[r]?-1:n[r]>t[r]?1:0}}return-1===t?function(t,r){return-n(t,r)}:n}function t(t,u){return t=n(t,u),t.thenBy=r,t}function r(r,u){var f=this;return r=n(r,u),t(function(n,t){return f(n,t)||r(n,t)})}return t}();
+
