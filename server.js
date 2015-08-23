@@ -4,6 +4,8 @@ var path = require('path');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 
+require("http").globalAgent.maxSockets = Infinity;
+
 var app = express();
 
 var server = require('http').Server(app);
@@ -12,9 +14,16 @@ var io = require('./sockets')(server);
 app.use(bodyParser.urlencoded({
     extended: true
 }));
+app.use(bodyParser.json());
 app.use(cookieParser());
 
 app.use(express.static(path.join(__dirname, 'public')));
+
+app.use(function(req, res, next) {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+    next();
+});
 
 app.use('/', require('./routes'));
 
@@ -25,7 +34,6 @@ app.use(function(req, res, next) {
     next(err);
 });
 
-server.listen(2000);
-console.log('Server running at 2000');
-
-module.exports = app;
+server.listen(2000, function () {
+    console.log('Server running at 2000');
+})
