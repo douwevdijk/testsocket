@@ -34,6 +34,6 @@ app.use(function(req, res, next) {
     next(err);
 });
 
-server.listen(2000, function () {
-    console.log('Server running at 2000');
+server.listen(8001, function () {
+    console.log('Server running at 8001');
 })
