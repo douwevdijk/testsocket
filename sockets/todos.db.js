@@ -105,6 +105,16 @@ module.exports = function() {
         });
     };
 
+    this.clearResults = function (callback) {
+        r.table('results').update({ results: [] }).run(connection, function (err) {
+            if (err) {
+                callback(null);
+            } else {
+                callback({result: 'OK'})
+            }
+        })
+    }
+
     this.getResult = function (payload, callback) {
 
         qId = payload.qId;

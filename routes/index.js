@@ -42,6 +42,18 @@ router.get('/score', function (req, res) {
     })
 })
 
+router.get('/initResult', function (req, res) {
+    db.getInitialData_results( function (data) {
+        res.json(data);
+    })
+});
+
+router.get('/clearResults', function (req, res) {
+    db.clearResults( function (data) {
+        res.json(data);
+    })
+})
+
 router.post('/getResult', function (req, res) {
 
     var body = req.body;
